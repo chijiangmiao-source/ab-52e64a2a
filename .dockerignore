@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.git
+data/
+*.log
+restart_local.sh

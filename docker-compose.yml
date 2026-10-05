@@ -1,0 +1,44 @@
+name: rulesvc
+
+services:
+  app:
+    build:
+      context: .
+      target: app
+    container_name: rulesvc-app
+    environment:
+      PORT: "8080"
+      SITES: ${SITES:-alpha,beta,gamma,delta}
+      DATA_DIR: /data
+    ports:
+      # 宿主机端口可通过 HOST_PORT 环境变量配置
+      - "${HOST_PORT:-8080}:8080"
+    volumes:
+      - app_data:/data
+    healthcheck:
+      test: ["CMD", "python", "/srv/app/healthcheck.py"]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+      start_period: 5s
+    restart: unless-stopped
+
+  verify:
+    build:
+      context: .
+      target: verify
+    container_name: rulesvc-verify
+    environment:
+      APP_URL: http://app:8080
+      APP_CONTAINER: rulesvc-app
+      DOCKER_SOCKET: /var/run/docker.sock
+    volumes:
+      # 用于重启 app 容器以验证重启后因果状态一致
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      app:
+        condition: service_healthy
+    restart: "no"
+
+volumes:
+  app_data:
